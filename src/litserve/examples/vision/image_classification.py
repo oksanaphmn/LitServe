@@ -13,25 +13,22 @@
 # limitations under the License.
 import base64
 import io
-
 import torch
 import torchvision
-from PIL import Image
-from torchvision.models import ResNet50_Weights
-
+import PIL
 import litserve as ls
 
 
 class ImageClassifierAPI(ls.LitAPI):
     def setup(self, device):
-        weights = ResNet50_Weights.DEFAULT
+        weights = torchvision.models.ResNet50_Weights.DEFAULT
         self.image_processing = weights.transforms()
         self.model = torchvision.models.resnet50(weights=weights).eval().to(device)
 
     def decode_request(self, request):
         image = request["image_data"]
         image = base64.b64decode(image)
-        image = Image.open(io.BytesIO(image)).convert("RGB")
+        image = PIL.Image.open(io.BytesIO(image)).convert("RGB")
         image = self.image_processing(image)
         return image[None, :].to(self.device)
 
@@ -55,5 +52,5 @@ class ImageClassifierAPI(ls.LitAPI):
 
 if __name__ == "__main__":
     api = ImageClassifierAPI()
-    server = ls.LitServer(api, max_batch_size=4, batch_timeout=0.1)
+    server = ls.LitServer(api, workers_per_device=4)
     server.run(port=8000)
