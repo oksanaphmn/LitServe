@@ -52,5 +52,5 @@ class ImageClassifierAPI(ls.LitAPI):
 
 if __name__ == "__main__":
     api = ImageClassifierAPI()
-    server = ls.LitServer(api, workers_per_device=4)
+    server = ls.LitServer(api, workers_per_device=2, max_batch_size=4, batch_timeout=0.05)
     server.run(port=8000)
