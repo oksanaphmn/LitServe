@@ -18,11 +18,8 @@ import base64
 with open("dog.jpg", "rb") as image_file:
     encoded_string = base64.b64encode(image_file.read()).decode("utf-8")
 
-# Prepare the JSON payload with the base64-encoded image data
-payload = {"image_data": encoded_string}
-
 # Send the POST request to the server
-response = requests.post("http://127.0.0.1:8000/predict", json=payload)
+response = requests.post("http://127.0.0.1:8000/predict", json={"image_data": encoded_string})
 
 # Print the response from the server
 print(response.json())
