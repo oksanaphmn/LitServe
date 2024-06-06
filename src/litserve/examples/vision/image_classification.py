@@ -17,24 +17,21 @@ import io
 import torch
 import torchvision
 from PIL import Image
-from torchvision import transforms
+from torchvision.models import ResNet50_Weights
+
 import litserve as ls
 
 
 class ImageClassifierAPI(ls.LitAPI):
     def setup(self, device):
-        self.image_processing = transforms.Compose([
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
-        self.model = torchvision.models.resnet50(pretrained=True).to(device)
+        weights = ResNet50_Weights.DEFAULT
+        self.image_processing = weights.transforms()
+        self.model = torchvision.models.resnet50(weights=weights).eval().to(device)
 
     def decode_request(self, request):
         image = request["image_data"]
         image = base64.b64decode(image)
-        image = Image.open(io.BytesIO(image))
+        image = Image.open(io.BytesIO(image)).convert("RGB")
         image = self.image_processing(image)
         return image[None, :].to(self.device)
 
