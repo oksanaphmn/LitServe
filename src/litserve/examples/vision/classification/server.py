@@ -14,6 +14,7 @@
 import base64
 import io
 import torch
+import requests
 import torchvision
 import PIL
 import litserve as ls
@@ -24,6 +25,10 @@ class ImageClassifierAPI(ls.LitAPI):
         weights = torchvision.models.ResNet50_Weights.DEFAULT
         self.image_processing = weights.transforms()
         self.model = torchvision.models.resnet50(weights=weights).eval().to(device)
+
+        # Load index to label name mapping
+        imagenet_url = "https://gist.githubusercontent.com/aniketmaurya/67ad790a2bbb161008917a395ddea18c/raw/1c4e75a2ce6f32ecb4b4b8f7f43236d4fff78af5/imagenet-1000.json"
+        self.imagenet_labels = requests.get(imagenet_url).json()["labels"]
 
     def decode_request(self, request):
         image = request["image_data"]
@@ -47,7 +52,8 @@ class ImageClassifierAPI(ls.LitAPI):
     def encode_response(self, output):
         if isinstance(output, list):
             output = output[0]
-        return {"label": output}
+        label = self.imagenet_labels[output]
+        return {"label": label}
 
 
 if __name__ == "__main__":
