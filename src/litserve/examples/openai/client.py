@@ -11,16 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import requests
+from openai import OpenAI
 
-response = requests.post(
-    "http://127.0.0.1:8000/v1/chat/completions",
-    json={
-        "model": "my-gpt",
-        "messages": [
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": "Hello! Where is Paris?"},
-        ],
-    },
+client = OpenAI(
+    base_url="http://127.0.0.1:8000/v1",
+    api_key="lit",  # required, but unused
 )
-print(response.json())
+response = client.chat.completions.create(
+    model="lit",
+    messages=[
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Where is Paris?"},
+    ],
+)
+print(response)
