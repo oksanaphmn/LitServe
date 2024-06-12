@@ -21,7 +21,7 @@ class OpenAILitAPI(ls.LitAPI):
             output = self.client.chat.completions.create(messages=prompt, model="gpt-3.5-turbo")
             yield output.choices[0].message.json()
         except (openai.APIError, openai.AuthenticationError, openai.RateLimitError, openai.InternalServerError):
-            logger.error("unable to connect with OpenAI API falling back to Anthropic")
+            logger.error("unable to connect with OpenAI API falling back to Cohere")
 
             message = prompt[-1]["content"]
             chat = self.cohere_client.chat(
