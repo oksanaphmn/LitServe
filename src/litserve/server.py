@@ -467,12 +467,13 @@ class LitServer:
     async def data_streamer(self, read: Connection, write: Connection):
         data_available = asyncio.Event()
         while True:
-            if not read.poll(1):
+            # Calling poll blocks the event loop, so keep the timeout low
+            if not read.poll(0.001):
                 asyncio.get_event_loop().add_reader(read.fileno(), data_available.set)
                 await data_available.wait()
                 data_available.clear()
                 asyncio.get_event_loop().remove_reader(read.fileno())
-            if read.poll(1):
+            if read.poll(0.001):
                 response, status = read.recv()
                 if status == LitAPIStatus.FINISH_STREAMING:
                     return
@@ -574,8 +575,9 @@ class LitServer:
         except Exception as e:
             print(f"Error copying file: {e}")
 
-    def run(self, port: Union[str, int] = 8000, log_level: str = "info", **kwargs):
-        self.generate_client_file()
+    def run(self, port: Union[str, int] = 8000, log_level: str = "info", generate_client_file: bool = True, **kwargs):
+        if generate_client_file:
+            self.generate_client_file()
 
         port_msg = f"port must be a value from 1024 to 65535 but got {port}"
         try:
