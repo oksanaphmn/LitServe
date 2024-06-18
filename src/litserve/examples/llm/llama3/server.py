@@ -22,12 +22,10 @@ class Llama3API(ls.LitAPI):
             device_type="auto",
         )
 
-    def predict(self, prompt, context):
+    def predict(self, prompt):
         prompt = prompt[-1]["content"]
         response = self.llm.generate(
             prompt=prompt,
-            temperature=context["temperature"],
-            max_new_tokens=context["max_tokens"],
         )
         yield response
 
