@@ -23,6 +23,7 @@
   <a href="https://lightning.ai/">Lightning AI</a> •
   <a href="https://lightning.ai/docs/litserve/home/get-started">Get started</a> •
   <a href="https://lightning.ai/docs/litserve/examples">Examples</a> •
+  <a href="#deployment-options">Deploy</a> •
   <a href="#features">Features</a> •
   <a href="https://lightning.ai/docs/litserve">Docs</a>
 </p>
@@ -71,18 +72,19 @@ Think of LitServe as PyTorch Lightning for model serving (if you're familiar wit
 # Examples
 Explore various examples that show different models deployed with LitServe:
 
-| Example  | description | Run |
+| Example  | description | Deploy on Studios |
 |---|---|---|
-| [Hello world](#implement-a-server)  | Hello world model | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/litserve-hello-world"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
-| [Llama 3 (8B)](https://lightning.ai/lightning-ai/studios/openai-fault-tolerant-proxy-server)  | **(LLM)** Deploy Llama 3 | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/deploy-a-private-llama-3-8b-api"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
-| [LLM proxy server](https://lightning.ai/lightning-ai/studios/deploy-a-voice-clone-api-coqui-xtts-v2-model)  | **(LLM)** Routes traffic to various LLM providers for fault tolerance | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/openai-fault-tolerant-proxy-server"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> | 
-| [ANY Hugging face model](https://lightning.ai/lightning-ai/studios/deploy-any-hugging-face-model-instantly)  | **(Text)** Deploy any Hugging Face model | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/deploy-any-hugging-face-model-instantly"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
-| [Hugging face BERT model](https://lightning.ai/lightning-ai/studios/deploy-a-hugging-face-bert-model)  | **(Text)** Deploy model for tasks like text generation and more | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/deploy-a-hugging-face-bert-model"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a>
-| [Open AI CLIP](https://lightning.ai/lightning-ai/studios/deploy-open-ai-clip-with-litserve)  | **(Multimodal)** Deploy Open AI CLIP for tasks like image understanding | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/deploy-open-ai-clip-with-litserve"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a>
-| [Open AI Whisper](https://lightning.ai/lightning-ai/studios/deploy-open-ai-s-whisper-model)  | **(Audio)** Deploy Open AI Whisper for tasks like speech to text | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/deploy-open-ai-s-whisper-model"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a>
-| [Stable Audio](https://lightning.ai/lightning-ai/studios/deploy-an-audio-generation-api)  | **(Audio)** Deploy Stable Audio for audio generation  | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/deploy-an-audio-generation-api"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a>
-| [Stable diffusion 2](https://lightning.ai/lightning-ai/studios/deploy-a-private-api-for-stable-diffusion-2)  | **(Vision)** Deploy Stable diffusion 2 for tasks like image generation | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/deploy-a-private-api-for-stable-diffusion-2"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a>
-| [Text-speech (XTTS V2)](https://lightning.ai/lightning-ai/studios/deploy-a-voice-clone-api-coqui-xtts-v2-model)  | **(Speech)** Deploy a text to speech voice cloning API. | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/deploy-a-voice-clone-api-coqui-xtts-v2-model"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a>
+| [Hello world](#implement-a-server)  | Hello world model | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/litserve-hello-world"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/deploy-on-studios.svg" alt="Open In Studio"/></a> |
+| [Llama 3 (8B)](https://lightning.ai/lightning-ai/studios/openai-fault-tolerant-proxy-server)  | **(LLM)** Deploy Llama 3 | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/deploy-a-private-llama-3-8b-api"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/deploy-on-studios.svg" alt="Open In Studio"/></a> |
+| [LLM proxy server](https://lightning.ai/lightning-ai/studios/deploy-a-voice-clone-api-coqui-xtts-v2-model)  | **(LLM)** Routes traffic to various LLM providers for fault tolerance | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/openai-fault-tolerant-proxy-server"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/deploy-on-studios.svg" alt="Open In Studio"/></a> | 
+| [ANY Hugging face model](https://lightning.ai/lightning-ai/studios/deploy-any-hugging-face-model-instantly)  | **(Text)** Deploy any Hugging Face model | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/deploy-any-hugging-face-model-instantly"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/deploy-on-studios.svg" alt="Open In Studio"/></a> |
+| [Hugging face BERT model](https://lightning.ai/lightning-ai/studios/deploy-a-hugging-face-bert-model)  | **(Text)** Deploy model for tasks like text generation and more | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/deploy-a-hugging-face-bert-model"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/deploy-on-studios.svg" alt="Open In Studio"/></a>
+| [Open AI CLIP](https://lightning.ai/lightning-ai/studios/deploy-open-ai-clip-with-litserve)  | **(Multimodal)** Deploy Open AI CLIP for tasks like image understanding | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/deploy-open-ai-clip-with-litserve"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/deploy-on-studios.svg" alt="Open In Studio"/></a>
+| [Open AI Whisper](https://lightning.ai/lightning-ai/studios/deploy-open-ai-s-whisper-model)  | **(Audio)** Deploy Open AI Whisper for tasks like speech to text | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/deploy-open-ai-s-whisper-model"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/deploy-on-studios.svg" alt="Open In Studio"/></a>
+| [Meta AudioCraft](https://lightning.ai/lightning-ai/studios/deploy-an-music-generation-api-with-meta-s-audio-craft)                     | **(Audio)** Deploy Meta's AudioCraft for music generation               | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/deploy-an-music-generation-api-with-meta-s-audio-craft"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/deploy-on-studios.svg" alt="Open In Studio"/></a>
+| [Stable Audio](https://lightning.ai/lightning-ai/studios/deploy-an-audio-generation-api)  | **(Audio)** Deploy Stable Audio for audio generation  | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/deploy-an-audio-generation-api"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/deploy-on-studios.svg" alt="Open In Studio"/></a>
+| [Stable diffusion 2](https://lightning.ai/lightning-ai/studios/deploy-a-private-api-for-stable-diffusion-2)  | **(Vision)** Deploy Stable diffusion 2 for tasks like image generation | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/deploy-a-private-api-for-stable-diffusion-2"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/deploy-on-studios.svg" alt="Open In Studio"/></a>
+| [Text-speech (XTTS V2)](https://lightning.ai/lightning-ai/studios/deploy-a-voice-clone-api-coqui-xtts-v2-model)  | **(Speech)** Deploy a text to speech voice cloning API. | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/deploy-a-voice-clone-api-coqui-xtts-v2-model"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/deploy-on-studios.svg" alt="Open In Studio"/></a>
 
 &nbsp;
 
@@ -92,7 +94,8 @@ LitServe has a minimal API that allows enterprise-scale, with full control.
 1. Implement the LitAPI class which describes the inference process for the model(s).
 2. Enable the specific optimizations (such as batching or streaming) in the LitServer.
 
-## Install LitServe
+#### Install LitServe  
+
 Install LitServe via pip (or use the [advanced install](https://lightning.ai/docs/litserve/home/install) instructions):
 
 ```bash
@@ -103,7 +106,7 @@ pip install litserve
 Here's a hello world example:
 
 <a target="_blank" href="https://lightning.ai/lightning-ai/studios/litserve-hello-world">
-  <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/>
+  <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/deploy-on-studios.svg" alt="Open In Studio"/>
 </a>
 
 ```python
@@ -159,6 +162,22 @@ The server expects the client to send a `POST` to the `/predict` URL with a JSON
 The way the payload is structured is up to the implementation of the `LitAPI` subclass.
 
 &nbsp;
+
+# Deployment options    
+LitServe is developed by Lightning AI - An AI development platform which provides infrastructure for deploying AI models.    
+Self manage your own deployments or use Lightning Studios to deploy production-grade models without cloud headaches.    
+
+&nbsp;
+
+<div align="center" style="height: 200">
+  <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/deploy-on-studios.svg" height="36px" alt="Deploy on Studios"/>
+</div>
+
+&nbsp;
+
+<div align="center" style="height: 200">
+<img width="640" alt="image" src="https://github.com/Lightning-AI/LitServe/assets/3640001/df873649-8b5c-4215-b340-e50da34e1181">
+</div>
 
 # Features
 LitServe supports multiple advanced state-of-the-art features.
@@ -343,6 +362,16 @@ LIT_SERVER_API_KEY=supersecretkey python main.py
 ```
 
 Clients are expected to auth with the same API key set in the `X-API-Key` HTTP header.
+
+Alternatively, implement a method named `authorize` in the LitAPI subclass to provide custom authentication:
+
+```python
+from fastapi import HTTPException, Depends
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+def authorize(self, auth: HTTPAuthorizationCredentials = Depends(HTTPBearer())):
+    raise HTTPException(status_code=401, detail="Not authorized")
+```
 
 </details>
 
@@ -604,6 +633,68 @@ if __name__ == "__main__":
     server.run(port=8000)
 ```
 &nbsp;
+
+The OpenAI response includes usage information, which contains the number of tokens for the prompt, generated text, and 
+total tokens for the given request.
+
+With LitServe, this can be achieved using the encode_response method to yield usage information as follows:
+
+```python
+import litserve as ls
+
+class OpenAIUsageAPI(ls.LitAPI):
+    def setup(self, device):
+        self.model = None
+
+    def predict(self, x):
+        yield "10 + 6 is equal to 16."
+
+    def encode_response(self, output):
+        for out in output:
+            yield {"role": "assistant", "content": out}
+        # Get the usage info and yield it as the last output
+        yield {"role": "assistant", "content": "", "prompt_tokens": 25, "completion_tokens": 10, "total_tokens": 35}
+```
+
+An equivalent, but simpler, approach without the need to override the `encode_response` method is as follows:
+
+```python
+import litserve as ls
+
+class OpenAIUsageAPI(ls.LitAPI):
+    def setup(self, device):
+        self.model = None
+
+    def predict(self, x):
+        yield {"role": "assistant", "content": "10 + 6 is equal to 16.", "prompt_tokens": 25, "completion_tokens": 10, "total_tokens": 35}
+```
+
+The server response using either of the above approaches would include token usage data as shown below:
+
+```json
+{
+    "id": "chatcmpl-9dEtoQgtrtr3451SZ2s98S",
+    "choices": [
+        {
+            "finish_reason": "stop",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+                "content": "10 + 6 is equal to 16.",
+                "role": "assistant",
+                "function_call": null,
+                "tool_calls": null
+            }
+        }
+    ],
+    "created": 1719139092,
+    "model": "gpt-3.5-turbo-0125",
+    "object": "chat.completion",
+    "system_fingerprint": null,
+    "usage": {"completion_tokens": 10, "prompt_tokens": 25, "total_tokens": 35}
+}
+```
+
 
 LitServe's `OpenAISpec` can also handle images in the input. Here is an example:
 
@@ -873,7 +964,7 @@ if __name__=="__main__":
 </details>
 
 <details>
-  <summary>Customize the endpoint path</summary>
+  <summary>✅ Customize the endpoint path</summary>
 
 &nbsp;
 

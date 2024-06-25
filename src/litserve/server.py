@@ -26,7 +26,7 @@ import uvicorn
 import time
 import os
 import shutil
-from typing import Sequence, Optional, Union, List
+from typing import Sequence, Optional, Union, List, Dict
 import uuid
 
 from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks, Request, Response
@@ -34,6 +34,7 @@ from fastapi.security import APIKeyHeader
 import sys
 
 from fastapi.responses import StreamingResponse
+from starlette.middleware.gzip import GZipMiddleware
 
 from litserve import LitAPI
 from litserve.connector import _Connector
@@ -68,67 +69,31 @@ def get_batch_from_uid(uids, lit_api, request_buffer):
     return batches
 
 
-def collate_requests(lit_api, request_queue: Queue, request_buffer, max_batch_size, batch_timeout):
+def collate_requests(
+    lit_api: LitAPI, request_queue: Queue, request_buffer: Dict, max_batch_size: int, batch_timeout: float
+) -> Optional[List]:
     uids = []
     entered_at = time.time()
-    while (batch_timeout - (time.time() - entered_at) > 0) and len(uids) < max_batch_size:
+    end_time = entered_at + batch_timeout
+
+    while time.time() < end_time and len(uids) < max_batch_size:
+        remaining_time = end_time - time.time()
+        if remaining_time <= 0:
+            break
+
         try:
-            uid = request_queue.get(timeout=0.001)
+            uid = request_queue.get(timeout=min(remaining_time, 0.001))
             uids.append(uid)
-        except (Empty, ValueError):
-            continue
-    return get_batch_from_uid(uids, lit_api, request_buffer)
-
-
-def run_batched_loop(lit_api, lit_spec, request_queue: Queue, request_buffer, max_batch_size, batch_timeout):
-    while True:
-        batches = collate_requests(
-            lit_api,
-            request_queue,
-            request_buffer,
-            max_batch_size,
-            batch_timeout,
-        )
-        if not batches:
+        except Empty:
             continue
 
-        logger.debug(f"{len(batches)} batched requests received")
-        inputs, pipes = zip(*batches)
+    if uids:
+        return get_batch_from_uid(uids, lit_api, request_buffer)
 
-        try:
-            contexts = [{}] * len(inputs)
-            if hasattr(lit_spec, "populate_context"):
-                for input, context in (inputs, contexts):
-                    lit_spec.populate_context(context, input)
-
-            x = [
-                _inject_context(
-                    context,
-                    lit_api.decode_request,
-                    input,
-                )
-                for input, context in zip(inputs, contexts)
-            ]
-            x = lit_api.batch(x)
-            y = _inject_context(contexts, lit_api.predict, x)
-            outputs = lit_api.unbatch(y)
-            for y, pipe_s, context in zip(outputs, pipes, contexts):
-                y_enc = _inject_context(context, lit_api.encode_response, y)
-
-                with contextlib.suppress(BrokenPipeError):
-                    pipe_s.send((y_enc, LitAPIStatus.OK))
-        except Exception as e:
-            logger.exception(
-                "LitAPI ran into an error while processing the batched request.\n"
-                "Please check the error trace for more details."
-            )
-            err_pkl = pickle.dumps(e)
-            with contextlib.suppress(BrokenPipeError):
-                for pipe_s in pipes:
-                    pipe_s.send((err_pkl, LitAPIStatus.ERROR))
+    return None
 
 
-def run_single_loop(lit_api, lit_spec, request_queue: Queue, request_buffer):
+def run_single_loop(lit_api: LitAPI, lit_spec: LitSpec, request_queue: Queue, request_buffer: Dict):
     while True:
         try:
             uid = request_queue.get(timeout=1.0)
@@ -170,7 +135,62 @@ def run_single_loop(lit_api, lit_spec, request_queue: Queue, request_buffer):
                 pipe_s.send((pickle.dumps(e), LitAPIStatus.ERROR))
 
 
-def run_streaming_loop(lit_api: LitAPI, lit_spec, request_queue: Queue, request_buffer):
+def run_batched_loop(
+    lit_api: LitAPI,
+    lit_spec: LitSpec,
+    request_queue: Queue,
+    request_buffer: Dict,
+    max_batch_size: int,
+    batch_timeout: float,
+):
+    while True:
+        batches = collate_requests(
+            lit_api,
+            request_queue,
+            request_buffer,
+            max_batch_size,
+            batch_timeout,
+        )
+        if not batches:
+            continue
+
+        logger.debug(f"{len(batches)} batched requests received")
+        inputs, pipes = zip(*batches)
+
+        try:
+            contexts = [{}] * len(inputs)
+            if hasattr(lit_spec, "populate_context"):
+                for input, context in zip(inputs, contexts):
+                    lit_spec.populate_context(context, input)
+
+            x = [
+                _inject_context(
+                    context,
+                    lit_api.decode_request,
+                    input,
+                )
+                for input, context in zip(inputs, contexts)
+            ]
+            x = lit_api.batch(x)
+            y = _inject_context(contexts, lit_api.predict, x)
+            outputs = lit_api.unbatch(y)
+            for y, pipe_s, context in zip(outputs, pipes, contexts):
+                y_enc = _inject_context(context, lit_api.encode_response, y)
+
+                with contextlib.suppress(BrokenPipeError):
+                    pipe_s.send((y_enc, LitAPIStatus.OK))
+        except Exception as e:
+            logger.exception(
+                "LitAPI ran into an error while processing the batched request.\n"
+                "Please check the error trace for more details."
+            )
+            err_pkl = pickle.dumps(e)
+            with contextlib.suppress(BrokenPipeError):
+                for pipe_s in pipes:
+                    pipe_s.send((err_pkl, LitAPIStatus.ERROR))
+
+
+def run_streaming_loop(lit_api: LitAPI, lit_spec: LitSpec, request_queue: Queue, request_buffer: Dict):
     while True:
         try:
             uid = request_queue.get(timeout=1.0)
@@ -217,7 +237,14 @@ def run_streaming_loop(lit_api: LitAPI, lit_spec, request_queue: Queue, request_
                 pipe_s.send((pickle.dumps(e), LitAPIStatus.ERROR))
 
 
-def run_batched_streaming_loop(lit_api, lit_spec, request_queue: Queue, request_buffer, max_batch_size, batch_timeout):
+def run_batched_streaming_loop(
+    lit_api: LitAPI,
+    lit_spec: LitSpec,
+    request_queue: Queue,
+    request_buffer: Dict,
+    max_batch_size: int,
+    batch_timeout: float,
+):
     while True:
         batches = collate_requests(
             lit_api,
@@ -234,7 +261,7 @@ def run_batched_streaming_loop(lit_api, lit_spec, request_queue: Queue, request_
         try:
             contexts = [{}] * len(inputs)
             if hasattr(lit_spec, "populate_context"):
-                for input, context in (inputs, contexts):
+                for input, context in zip(inputs, contexts):
                     lit_spec.populate_context(context, input)
 
             x = [
@@ -273,13 +300,13 @@ def run_batched_streaming_loop(lit_api, lit_spec, request_queue: Queue, request_
 def inference_worker(
     lit_api: LitAPI,
     lit_spec: Optional[LitSpec],
-    device,
-    worker_id,
-    request_queue,
-    request_buffer,
-    max_batch_size,
-    batch_timeout,
-    stream,
+    device: str,
+    worker_id: int,
+    request_queue: Queue,
+    request_buffer: Dict,
+    max_batch_size: int,
+    batch_timeout: float,
+    stream: bool,
 ):
     lit_api.setup(device)
     lit_api.device = device
@@ -315,12 +342,6 @@ def api_key_auth(x_api_key: str = Depends(APIKeyHeader(name="X-API-Key"))):
         raise HTTPException(
             status_code=401, detail="Invalid API Key. Check that you are passing a correct 'X-API-Key' in your header."
         )
-
-
-def setup_auth():
-    if LIT_SERVER_API_KEY:
-        return api_key_auth
-    return no_auth
 
 
 def cleanup(request_buffer, uid):
@@ -360,6 +381,9 @@ class LitServer:
         lit_api.stream = stream
         lit_api.sanitize(max_batch_size, spec=spec)
         self.app = FastAPI(lifespan=self.lifespan)
+        # gzip does not play nicely with streaming, see https://github.com/tiangolo/fastapi/discussions/8448
+        if not stream:
+            self.app.add_middleware(GZipMiddleware, minimum_size=1000)
         self.lit_api = lit_api
         self.lit_spec = spec
         self.workers_per_device = workers_per_device
@@ -470,15 +494,16 @@ class LitServer:
 
     async def data_reader(self, read):
         data_available = asyncio.Event()
-        asyncio.get_event_loop().add_reader(read.fileno(), data_available.set)
+        loop = asyncio.get_event_loop()
+        loop.add_reader(read.fileno(), data_available.set)
 
         if not read.poll():
             await data_available.wait()
         data_available.clear()
-        asyncio.get_event_loop().remove_reader(read.fileno())
+        loop.remove_reader(read.fileno())
         return read.recv()
 
-    async def win_data_streamer(self, read, write):
+    async def win_data_streamer(self, read, write, send_status=False):
         # this is a workaround for Windows since asyncio loop.add_reader is not supported.
         # https://docs.python.org/3/library/asyncio-platforms.html
         while True:
@@ -493,38 +518,63 @@ class LitServer:
                         "Error occurred while streaming outputs from the inference worker. "
                         "Please check the above traceback."
                     )
+                    yield response, status
                     return
-                yield response
+                if send_status:
+                    yield response, status
+                else:
+                    yield response
 
             await asyncio.sleep(0.0001)
 
-    async def data_streamer(self, read: Connection, write: Connection):
+    async def data_streamer(self, read: Connection, write: Connection, send_status=False):
         data_available = asyncio.Event()
-        while True:
-            # Calling poll blocks the event loop, so keep the timeout low
-            if not read.poll(0.001):
-                asyncio.get_event_loop().add_reader(read.fileno(), data_available.set)
+        queue = asyncio.Queue()
+        loop = asyncio.get_event_loop()
+
+        def reader():
+            try:
+                while read.poll():  # Check if there's data available to read
+                    response, status = read.recv()
+                    queue.put_nowait((response, status))
+                    data_available.set()
+            except Exception as e:
+                logger.error(f"Exception in reader: {e}")
+
+        loop.add_reader(read.fileno(), reader)
+
+        try:
+            while True:
                 await data_available.wait()
                 data_available.clear()
-                asyncio.get_event_loop().remove_reader(read.fileno())
-            if read.poll(0.001):
-                response, status = read.recv()
-                if status == LitAPIStatus.FINISH_STREAMING:
-                    return
-                if status == LitAPIStatus.ERROR:
-                    logger.error(
-                        "Error occurred while streaming outputs from the inference worker. "
-                        "Please check the above traceback."
-                    )
-                    return
-                yield response
+
+                while not queue.empty():
+                    response, status = await queue.get()
+                    if status == LitAPIStatus.FINISH_STREAMING:
+                        loop.remove_reader(read.fileno())
+                        return
+                    if status == LitAPIStatus.ERROR:
+                        logger.error(
+                            "Error occurred while streaming outputs from the inference worker. "
+                            "Please check the above traceback."
+                        )
+                        loop.remove_reader(read.fileno())
+                        if send_status:
+                            yield response, status
+                        return
+                    if send_status:
+                        yield response, status
+                    else:
+                        yield response
+        finally:
+            loop.remove_reader(read.fileno())
 
     def cleanup_request(self, request_buffer, uid):
         with contextlib.suppress(KeyError):
             request_buffer.pop(uid)
 
     def setup_server(self):
-        @self.app.get("/", dependencies=[Depends(setup_auth())])
+        @self.app.get("/", dependencies=[Depends(self.setup_auth())])
         async def index(request: Request) -> Response:
             return Response(content="litserve running")
 
@@ -586,14 +636,19 @@ class LitServer:
             endpoint = self.api_path
             methods = ["POST"]
             self.app.add_api_route(
-                endpoint, stream_predict if stream else predict, methods=methods, dependencies=[Depends(setup_auth())]
+                endpoint,
+                stream_predict if stream else predict,
+                methods=methods,
+                dependencies=[Depends(self.setup_auth())],
             )
 
         for spec in self._specs:
             spec: LitSpec
             # TODO check that path is not clashing
             for path, endpoint, methods in spec.endpoints:
-                self.app.add_api_route(path, endpoint=endpoint, methods=methods, dependencies=[Depends(setup_auth())])
+                self.app.add_api_route(
+                    path, endpoint=endpoint, methods=methods, dependencies=[Depends(self.setup_auth())]
+                )
 
     def generate_client_file(self):
         src_path = os.path.join(os.path.dirname(__file__), "python_client.py")
@@ -623,3 +678,10 @@ class LitServer:
             raise ValueError(port_msg)
 
         uvicorn.run(host="0.0.0.0", port=port, app=self.app, log_level=log_level, **kwargs)
+
+    def setup_auth(self):
+        if hasattr(self.lit_api, "authorize") and callable(self.lit_api.authorize):
+            return self.lit_api.authorize
+        if LIT_SERVER_API_KEY:
+            return api_key_auth
+        return no_auth
