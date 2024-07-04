@@ -13,6 +13,7 @@
 # limitations under the License.
 import asyncio
 import contextlib
+import queue
 import copy
 import logging
 import pickle
@@ -353,14 +354,14 @@ async def queue_to_buffer(queue, buffer):
             uid, payload = queue.get_nowait()
             buffer[uid] = payload
         except Empty:
-            await asyncio.sleep(0.0001)
+            await asyncio.sleep(0.001)
 
 
 async def wait_for_result(uid, buffer):
     while True:
         if uid in buffer:
-            return buffer[uid]
-        await asyncio.sleep(0.0001)
+            return buffer.pop(uid)
+        await asyncio.sleep(0.001)
 
 
 class LitServer:
@@ -435,7 +436,7 @@ class LitServer:
     @asynccontextmanager
     async def lifespan(self, app: FastAPI):
         manager = Manager()
-        self.request_queue = manager.Queue()
+        self.request_queue = queue.Queue()
         self.response_buffer = {}
 
         response_queues = []
@@ -455,20 +456,20 @@ class LitServer:
 
         loop = asyncio.get_running_loop()
 
-        process_list = []
+        thread_list = []
         # NOTE: device: str | List[str], the latter in the case a model needs more than one device to run
         for worker_id, device in enumerate(self.devices * self.workers_per_device):
             if len(device) == 1:
                 device = device[0]
 
-            response_queue = manager.Queue()
+            response_queue = queue.Queue()
             response_queues.append(response_queue)
 
             task = loop.create_task(queue_to_buffer(response_queue, self.response_buffer))
             tasks.append(task)
 
-            ctx = mp.get_context("spawn")
-            process = ctx.Process(
+            # ctx = mp.get_context("spawn")
+            thread = threading.Thread(
                 target=inference_worker,
                 args=(
                     self.lit_api,
@@ -483,8 +484,8 @@ class LitServer:
                 ),
                 daemon=True,
             )
-            process.start()
-            process_list.append((process, worker_id))
+            thread.start()
+            thread_list.append((thread, worker_id))
 
         for spec in self._specs:
             # Objects of Server class are referenced (not copied)
@@ -495,9 +496,9 @@ class LitServer:
 
         yield
 
-        for process, worker_id in process_list:
+        for thread, worker_id in thread_list:
             logging.info(f"terminating worker worker_id={worker_id}")
-            process.terminate()
+            # process.terminate()
 
     def new_pipe(self) -> tuple:
         return Pipe()
@@ -605,6 +606,7 @@ class LitServer:
         async def predict(request: self.request_type, background_tasks: BackgroundTasks) -> self.response_type:
             uid = uuid.uuid4()
             logger.debug(f"Received request uid={uid}")
+            print(uid)
 
             payload = request
             if self.request_type == Request:
