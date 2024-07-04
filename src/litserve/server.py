@@ -42,6 +42,7 @@ from litserve.connector import _Connector
 from litserve.specs import OpenAISpec
 from litserve.specs.base import LitSpec
 from litserve.utils import wait_for_queue_timeout, LitAPIStatus, load_and_raise
+from litserve.lit_process import LitSMQ
 
 logger = logging.getLogger(__name__)
 
@@ -140,7 +141,12 @@ def run_batched_loop(
     response_queue: Queue,
     max_batch_size: int,
     batch_timeout: float,
+    worker_id,
+    request_lock,
+    response_lock
 ):
+    request_queue = LitSMQ.attach("lit_request", lock=request_lock)
+    response_queue = LitSMQ.attach(f"lit_response-{worker_id}", lock=response_lock)
     while True:
         batches = collate_requests(
             lit_api,
@@ -303,6 +309,7 @@ def inference_worker(
     max_batch_size: int,
     batch_timeout: float,
     stream: bool,
+    *args
 ):
     request_buffer = {}
     lit_api.setup(device)
@@ -320,7 +327,7 @@ def inference_worker(
         return
 
     if max_batch_size > 1:
-        run_batched_loop(lit_api, lit_spec, request_queue, response_queue, max_batch_size, batch_timeout)
+        run_batched_loop(lit_api, lit_spec, request_queue, response_queue, max_batch_size, batch_timeout, worker_id, *args)
     else:
         run_single_loop(
             lit_api,
@@ -435,7 +442,7 @@ class LitServer:
     @asynccontextmanager
     async def lifespan(self, app: FastAPI):
         manager = Manager()
-        self.request_queue = manager.Queue()
+        request_lock, self.request_queue = LitSMQ.create("lit_request", 50_000_000)  #manager.Queue()
         self.response_buffer = {}
 
         response_queues = []
@@ -462,6 +469,7 @@ class LitServer:
                 device = device[0]
 
             response_queue = manager.Queue()
+            response_lock, response_queue = LitSMQ.create(f"lit_response-{worker_id}") 
             response_queues.append(response_queue)
 
             task = loop.create_task(queue_to_buffer(response_queue, self.response_buffer))
@@ -475,11 +483,13 @@ class LitServer:
                     self.lit_spec,
                     device,
                     worker_id,
-                    self.request_queue,
-                    response_queue,
+                    None,
+                    None,
                     self.max_batch_size,
                     self.batch_timeout,
                     self.stream,
+                    request_lock,
+                    response_lock
                 ),
                 daemon=True,
             )
