@@ -1,4 +1,4 @@
-name: Minimal dependency check
+name: Run parity tests
 
 on:
   push:
@@ -26,8 +26,8 @@ jobs:
       - name: Install LitServe
         run: |
           pip --version
-          pip install . psutil  -U -q
+          pip install . "torchvision" "jsonargparse" -U -q -r _requirements/test.txt -U -q
           pip list
 
       - name: Tests
-        run: python tests/minimal_run.py
+        run: export PYTHONPATH=$PWD && python tests/parity_fastapi/main.py

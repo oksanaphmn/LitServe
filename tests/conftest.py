@@ -18,6 +18,7 @@ from typing import Generator
 from litserve.server import LitServer
 import pytest
 from litserve.api import LitAPI
+from litserve.utils import wrap_litserve_start
 from fastapi import Request, Response
 from fastapi.testclient import TestClient
 
@@ -99,7 +100,9 @@ def simple_batched_stream_api():
 
 @pytest.fixture()
 def lit_server(simple_litapi):
-    return LitServer(simple_litapi, accelerator="cpu", devices=1, timeout=10)
+    server = LitServer(simple_litapi, accelerator="cpu", devices=1, timeout=10)
+    with wrap_litserve_start(server) as s:
+        yield s
 
 
 @pytest.fixture()
@@ -211,6 +214,46 @@ def openai_request_data_with_tools():
                 },
             }
         ],
+        "temperature": 0.7,
+        "top_p": 1,
+        "n": 1,
+        "max_tokens": 0,
+        "stop": "string",
+        "stream": False,
+        "presence_penalty": 0,
+        "frequency_penalty": 0,
+        "user": "string",
+    }
+
+
+@pytest.fixture()
+def openai_request_data_with_response_format():
+    return {
+        "model": "lit",
+        "messages": [
+            {
+                "role": "system",
+                "content": "Extract the event information.",
+            },
+            {"role": "user", "content": "Alice and Bob are going to a science fair on Friday."},
+        ],
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "calendar_event",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "date": {"type": "string"},
+                        "participants": {"type": "array", "items": {"type": "string"}},
+                    },
+                    "required": ["name", "date", "participants"],
+                    "additionalProperties": "false",
+                },
+                "strict": "true",
+            },
+        },
         "temperature": 0.7,
         "top_p": 1,
         "n": 1,
